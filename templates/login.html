@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
+    <title>Client Login</title>
 </head>
 <body>
 
     <h2>Client Login</h2>
 
-    <p>Client: {{ client_number }}</p>
+    <p>Enter your email to receive a login code</p>
 
     <form method="POST" action="/auth/request-otp">
-        <label>Email or Phone:</label><br>
-        <input type="text" name="contact" required><br><br>
+        <label>Email:</label><br>
+        <input type="email" name="contact" required><br><br>
 
         <input type="hidden" name="client_number" value="{{ client_number }}">
 
-        <button type="submit">Request OTP</button>
+        <button type="submit">Send Code</button>
     </form>
 
 </body>
