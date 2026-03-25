@@ -9,7 +9,7 @@ from datetime import datetime
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 from db import get_db_connection
-from utils.otp import generate_otp
+from utils.otp import generate_otp, send_otp_email
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -89,7 +89,10 @@ def request_otp():
     cur.close()
     conn.close()
 
-    # 🔁 Redirect to verify page (instead of JSON)
+    # 5. Send email
+    send_otp_email(contact, code)
+
+    # 6. Redirect to verify page
     return redirect(url_for(
         "auth.verify_page",
         contact=contact,
@@ -164,5 +167,11 @@ def verify_otp():
     cur.close()
     conn.close()
 
-    # 🔁 Redirect to dashboard (instead of JSON)
+    # Redirect to dashboard
     return redirect("/dashboard")
+
+
+# --- Dashboard ---
+@auth_bp.route("/dashboard", methods=["GET"])
+def dashboard():
+    return render_template("dashboard.html")
