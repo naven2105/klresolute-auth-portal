@@ -7,7 +7,7 @@ Purpose:
 
 from datetime import datetime
 
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 from db import get_db_connection
 from utils.otp import generate_otp
 
@@ -24,6 +24,19 @@ def test():
 @auth_bp.route("/login/<client_number>", methods=["GET"])
 def login(client_number):
     return render_template("login.html", client_number=client_number)
+
+
+# --- Verify Page ---
+@auth_bp.route("/verify", methods=["GET"])
+def verify_page():
+    contact = request.args.get("contact")
+    client_number = request.args.get("client_number")
+
+    return render_template(
+        "verify.html",
+        contact=contact,
+        client_number=client_number
+    )
 
 
 # --- Request OTP ---
@@ -76,11 +89,13 @@ def request_otp():
     cur.close()
     conn.close()
 
-    # TEMP: return OTP (for testing only)
-    return jsonify({
-        "message": "OTP generated",
-        "otp": code
-    }), 200
+    # 🔁 Redirect to verify page (instead of JSON)
+    return redirect(url_for(
+        "auth.verify_page",
+        contact=contact,
+        client_number=client_number
+    ))
+
 
 # --- Verify OTP ---
 @auth_bp.route("/auth/verify-otp", methods=["POST"])
@@ -149,7 +164,5 @@ def verify_otp():
     cur.close()
     conn.close()
 
-    return jsonify({
-        "message": "Login successful",
-        "session_token": session_token
-    }), 200
+    # 🔁 Redirect to dashboard (instead of JSON)
+    return redirect("/dashboard")
