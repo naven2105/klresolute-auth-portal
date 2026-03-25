@@ -20,7 +20,7 @@ def generate_otp(length=6):
 def send_otp_email(to_email, code):
     smtp_server = "mail.klresolute.co.za"
     smtp_port = 465
-    smtp_user = "navenpather@gmail.com"
+    smtp_user = "admin@klresolute.co.za"
     smtp_password = os.getenv("EMAIL_PASSWORD")
 
     msg = MIMEText(f"Your login code is: {code}")
