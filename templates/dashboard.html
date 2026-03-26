@@ -1,0 +1,36 @@
+<!--
+File: templates/dashboard.html
+
+Purpose:
+- Display basic client dashboard
+- Confirm authenticated user identity
+- Confirm client isolation
+- Provide placeholder modules for future features
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+
+    <h2>Dashboard</h2>
+
+    <hr>
+
+    <h3>Identity</h3>
+    <p><strong>Client:</strong> {{ client_name }}</p>
+    <p><strong>Email:</strong> {{ email }}</p>
+
+    <hr>
+
+    <h3>Modules (Coming Soon)</h3>
+    <ul>
+        <li>Daily Specials</li>
+        <li>Messages</li>
+        <li>Settings</li>
+    </ul>
+
+</body>
+</html>
