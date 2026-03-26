@@ -221,11 +221,10 @@ def verify_otp():
     return response
 
 
-# --- Dashboard (DEBUG) ---
+# --- Dashboard (NOW WITH CONTEXT) ---
 @auth_bp.route("/dashboard", methods=["GET"])
 def dashboard():
     session_token = request.cookies.get("session_token")
-    print("SESSION TOKEN:", session_token)
 
     if not session_token:
         return redirect("/login/test")
@@ -233,14 +232,13 @@ def dashboard():
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # Validate session
     cur.execute("""
         SELECT user_id, expires_at
         FROM auth_sessions
         WHERE session_token = %s
     """, (session_token,))
-
     session = cur.fetchone()
-    print("SESSION DB RESULT:", session)
 
     if not session:
         cur.close()
@@ -254,7 +252,31 @@ def dashboard():
         conn.close()
         return redirect("/login/test")
 
+    # Get user
+    cur.execute("""
+        SELECT email, client_id
+        FROM auth_users
+        WHERE user_id = %s
+    """, (user_id,))
+    user = cur.fetchone()
+
+    email, client_id = user
+
+    # Get client
+    cur.execute("""
+        SELECT client_name
+        FROM clients
+        WHERE client_id = %s
+    """, (client_id,))
+    client = cur.fetchone()
+
+    client_name = client[0] if client else "Unknown Client"
+
     cur.close()
     conn.close()
 
-    return render_template("dashboard.html")
+    return render_template(
+        "dashboard.html",
+        email=email,
+        client_name=client_name
+    )
