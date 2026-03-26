@@ -10,7 +10,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 from db import get_db_connection
 from utils.otp import generate_otp, send_otp_email
-from utils.session import validate_session  # ✅ added
+from utils.session import validate_session
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -222,15 +222,11 @@ def verify_otp():
     return response
 
 
-# --- Dashboard (WITH SESSION HELPER) ---
+# --- Dashboard ---
 @auth_bp.route("/dashboard", methods=["GET"])
 def dashboard():
     session_token = request.cookies.get("session_token")
-
     user_id = validate_session(session_token)
-
-    if not user_id:
-        return redirect("/login/test")
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -262,4 +258,4 @@ def dashboard():
         "dashboard.html",
         email=email,
         client_name=client_name
-    )
+    )   

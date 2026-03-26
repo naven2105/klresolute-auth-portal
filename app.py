@@ -7,10 +7,13 @@ Purpose:
 - Start Flask app
 - Register routes
 - Provide base endpoints
+- Apply global middleware (session protection)
 """
 
-from flask import Flask
+from flask import Flask, request, redirect
+
 from auth.routes import auth_bp
+from utils.session import validate_session
 
 
 def create_app():
@@ -21,6 +24,17 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(auth_bp)
+
+    # --- Middleware: Protect Routes ---
+    @app.before_request
+    def protect_routes():
+        # Only protect dashboard for now
+        if request.path == "/dashboard":
+            session_token = request.cookies.get("session_token")
+            user_id = validate_session(session_token)
+
+            if not user_id:
+                return redirect("/login/test")
 
     return app
 
