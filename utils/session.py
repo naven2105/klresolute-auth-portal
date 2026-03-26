@@ -3,11 +3,14 @@ File: utils/session.py
 
 Purpose:
 - Handle session validation
-- Return user_id if session is valid
+- Enforce inactivity timeout (1 minute)
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from db import get_db_connection
+
+
+INACTIVITY_TIMEOUT = timedelta(minutes=1)
 
 
 def validate_session(session_token):
@@ -18,7 +21,7 @@ def validate_session(session_token):
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT user_id, expires_at
+        SELECT user_id, expires_at, last_activity_at
         FROM auth_sessions
         WHERE session_token = %s
     """, (session_token,))
@@ -30,12 +33,35 @@ def validate_session(session_token):
         conn.close()
         return None
 
-    user_id, expires_at = session
+    user_id, expires_at, last_activity_at = session
 
-    if expires_at < datetime.utcnow():
+    now = datetime.utcnow()
+
+    # --- Expiry check ---
+    if expires_at < now:
         cur.close()
         conn.close()
         return None
+
+    # 🔴 FIX: Allow slight buffer (timezone / delay)
+    if last_activity_at < now - (INACTIVITY_TIMEOUT + timedelta(seconds=10)):
+        cur.execute("""
+            DELETE FROM auth_sessions
+            WHERE session_token = %s
+        """, (session_token,))
+        conn.commit()
+
+        cur.close()
+        conn.close()
+        return None
+
+    # --- Update last activity ---
+    cur.execute("""
+        UPDATE auth_sessions
+        SET last_activity_at = NOW()
+        WHERE session_token = %s
+    """, (session_token,))
+    conn.commit()
 
     cur.close()
     conn.close()
