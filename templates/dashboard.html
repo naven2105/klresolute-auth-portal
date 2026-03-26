@@ -3,9 +3,8 @@ File: templates/dashboard.html
 
 Purpose:
 - Display dashboard
-- Confirm authenticated user identity
-- Sync session timer with backend (5 minutes)
-- Fix timestamp parsing using ISO format
+- Show identity
+- Show session expiry warning (no forced logout)
 -->
 
 <!DOCTYPE html>
@@ -43,15 +42,13 @@ Purpose:
     </p>
 
     <script>
-        // ✅ FIX: Use ISO format (safe for JS)
-        const lastActivityStr = "{{ last_activity_at.isoformat() }}";
-        const lastActivity = new Date(lastActivityStr).getTime();
-        const now = new Date().getTime();
+        const lastActivity = new Date("{{ last_activity_at.isoformat() }}").getTime();
+        const serverNow = new Date("{{ server_now.isoformat() }}").getTime();
 
-        const timeoutMs = 5 * 60 * 1000;   // 5 minutes
-        const warningMs = 60 * 1000;       // last 1 minute warning
+        const timeoutMs = 5 * 60 * 1000;
+        const warningMs = 60 * 1000;
 
-        let remaining = timeoutMs - (now - lastActivity);
+        let remaining = timeoutMs - (serverNow - lastActivity);
 
         const interval = setInterval(() => {
             remaining -= 1000;
@@ -60,10 +57,8 @@ Purpose:
                 document.getElementById("session-warning").style.display = "block";
             }
 
-            if (remaining <= 0) {
-                clearInterval(interval);
-                window.location.href = "/login/test?expired=1";
-            }
+            // ❌ REMOVED auto logout
+            // Backend will handle expiry on next request
 
         }, 1000);
     </script>
