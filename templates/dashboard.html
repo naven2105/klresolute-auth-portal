@@ -3,8 +3,7 @@ File: templates/dashboard.html
 
 Purpose:
 - Display dashboard
-- Show identity
-- Provide logout access
+- Sync session timer with backend (5 minutes)
 -->
 
 <!DOCTYPE html>
@@ -16,7 +15,6 @@ Purpose:
 
     <h2>Dashboard</h2>
 
-    <!-- ✅ Logout -->
     <p><a href="/logout">Logout</a></p>
 
     <hr>
@@ -44,8 +42,9 @@ Purpose:
         const lastActivity = new Date("{{ last_activity_at }}").getTime();
         const now = new Date().getTime();
 
-        const timeoutMs = 60 * 1000;
-        const warningMs = 30 * 1000;
+        // ✅ MATCH BACKEND (5 minutes)
+        const timeoutMs = 5 * 60 * 1000;
+        const warningMs = 60 * 1000; // show warning in last 1 minute
 
         let remaining = timeoutMs - (now - lastActivity);
 
