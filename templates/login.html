@@ -1,21 +1,34 @@
+<!--
+File: templates/login.html
+
+Purpose:
+- Login page
+- Accept user contact (email/phone)
+- Show session expiry message if applicable
+-->
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Client Login</title>
+    <title>Login</title>
 </head>
 <body>
 
-    <h2>Client Login</h2>
+    <h2>Login</h2>
 
-    <p>Enter your email to receive a login code</p>
+    {% if expired %}
+        <p style="color: red;">
+            Your session expired due to inactivity. Please log in again.
+        </p>
+    {% endif %}
 
     <form method="POST" action="/auth/request-otp">
-        <label>Email:</label><br>
-        <input type="email" name="contact" required><br><br>
-
         <input type="hidden" name="client_number" value="{{ client_number }}">
 
-        <button type="submit">Send Code</button>
+        <label>Enter Email or Phone:</label><br>
+        <input type="text" name="contact" required><br><br>
+
+        <button type="submit">Request Code</button>
     </form>
 
 </body>

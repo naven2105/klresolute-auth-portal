@@ -24,7 +24,12 @@ def test():
 # --- Login Page ---
 @auth_bp.route("/login/<client_number>", methods=["GET"])
 def login(client_number):
-    return render_template("login.html", client_number=client_number)
+    expired = request.args.get("expired")  # ✅ NEW
+    return render_template(
+        "login.html",
+        client_number=client_number,
+        expired=expired
+    )
 
 
 # --- Verify Page ---
@@ -231,7 +236,6 @@ def dashboard():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Get user
     cur.execute("""
         SELECT email, client_id
         FROM auth_users
@@ -241,7 +245,6 @@ def dashboard():
 
     email, client_id = user
 
-    # Get client
     cur.execute("""
         SELECT client_name
         FROM clients
@@ -259,6 +262,7 @@ def dashboard():
         email=email,
         client_name=client_name
     )
+
 
 # --- Logout ---
 @auth_bp.route("/logout", methods=["GET"])

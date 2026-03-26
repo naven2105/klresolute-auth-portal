@@ -28,13 +28,12 @@ def create_app():
     # --- Middleware: Protect Routes ---
     @app.before_request
     def protect_routes():
-        # ✅ Protect ALL dashboard routes
         if request.path.startswith("/dashboard"):
             session_token = request.cookies.get("session_token")
             user_id = validate_session(session_token)
 
             if not user_id:
-                return redirect("/login/test")
+                return redirect("/login/test?expired=1")  # ✅ changed
 
     return app
 
