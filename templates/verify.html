@@ -7,6 +7,11 @@
 
     <h2>Enter Your Code</h2>
 
+    <!-- ✅ Error message display -->
+    {% if error %}
+        <p style="color:red;"><strong>{{ error }}</strong></p>
+    {% endif %}
+
     <p>We sent a 6-digit code to your email and WhatsApp</p>
 
     <form method="POST" action="/auth/verify-otp">
