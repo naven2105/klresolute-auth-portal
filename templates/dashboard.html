@@ -2,9 +2,9 @@
 File: templates/dashboard.html
 
 Purpose:
-- Display basic client dashboard
-- Confirm authenticated user identity
-- Show inactivity countdown warning
+- Display dashboard
+- Show identity
+- Provide logout access
 -->
 
 <!DOCTYPE html>
@@ -15,6 +15,9 @@ Purpose:
 <body>
 
     <h2>Dashboard</h2>
+
+    <!-- ✅ Logout -->
+    <p><a href="/logout">Logout</a></p>
 
     <hr>
 
@@ -33,26 +36,28 @@ Purpose:
 
     <hr>
 
-    <!-- Session Warning -->
     <p id="session-warning" style="color: red; display: none;">
         Your session will expire soon due to inactivity.
     </p>
 
     <script>
-        // 60 seconds total
-        const totalTime = 60;
-        const warningTime = 30;
+        const lastActivity = new Date("{{ last_activity_at }}").getTime();
+        const now = new Date().getTime();
 
-        let elapsed = 0;
+        const timeoutMs = 60 * 1000;
+        const warningMs = 30 * 1000;
 
-        setInterval(() => {
-            elapsed++;
+        let remaining = timeoutMs - (now - lastActivity);
 
-            if (elapsed === warningTime) {
+        const interval = setInterval(() => {
+            remaining -= 1000;
+
+            if (remaining <= warningMs) {
                 document.getElementById("session-warning").style.display = "block";
             }
 
-            if (elapsed >= totalTime) {
+            if (remaining <= 0) {
+                clearInterval(interval);
                 window.location.href = "/login/test?expired=1";
             }
 

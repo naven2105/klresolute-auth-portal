@@ -24,7 +24,7 @@ def test():
 # --- Login Page ---
 @auth_bp.route("/login/<client_number>", methods=["GET"])
 def login(client_number):
-    expired = request.args.get("expired")  # ✅ NEW
+    expired = request.args.get("expired")
     return render_template(
         "login.html",
         client_number=client_number,
@@ -227,7 +227,7 @@ def verify_otp():
     return response
 
 
-# --- Dashboard ---
+# --- Dashboard (SYNC TIMER) ---
 @auth_bp.route("/dashboard", methods=["GET"])
 def dashboard():
     session_token = request.cookies.get("session_token")
@@ -236,6 +236,7 @@ def dashboard():
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # Get user
     cur.execute("""
         SELECT email, client_id
         FROM auth_users
@@ -245,6 +246,7 @@ def dashboard():
 
     email, client_id = user
 
+    # Get client
     cur.execute("""
         SELECT client_name
         FROM clients
@@ -254,13 +256,24 @@ def dashboard():
 
     client_name = client[0] if client else "Unknown Client"
 
+    # ✅ NEW: get last_activity_at
+    cur.execute("""
+        SELECT last_activity_at
+        FROM auth_sessions
+        WHERE session_token = %s
+    """, (session_token,))
+    session_data = cur.fetchone()
+
+    last_activity_at = session_data[0]
+
     cur.close()
     conn.close()
 
     return render_template(
         "dashboard.html",
         email=email,
-        client_name=client_name
+        client_name=client_name,
+        last_activity_at=last_activity_at
     )
 
 
