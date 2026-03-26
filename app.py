@@ -28,8 +28,8 @@ def create_app():
     # --- Middleware: Protect Routes ---
     @app.before_request
     def protect_routes():
-        # Only protect dashboard for now
-        if request.path == "/dashboard":
+        # ✅ Protect ALL dashboard routes
+        if request.path.startswith("/dashboard"):
             session_token = request.cookies.get("session_token")
             user_id = validate_session(session_token)
 
