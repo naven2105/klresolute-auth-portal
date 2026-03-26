@@ -4,8 +4,7 @@ File: templates/dashboard.html
 Purpose:
 - Display basic client dashboard
 - Confirm authenticated user identity
-- Confirm client isolation
-- Provide placeholder modules for future features
+- Show inactivity countdown warning
 -->
 
 <!DOCTYPE html>
@@ -31,6 +30,34 @@ Purpose:
         <li>Messages</li>
         <li>Settings</li>
     </ul>
+
+    <hr>
+
+    <!-- Session Warning -->
+    <p id="session-warning" style="color: red; display: none;">
+        Your session will expire soon due to inactivity.
+    </p>
+
+    <script>
+        // 60 seconds total
+        const totalTime = 60;
+        const warningTime = 30;
+
+        let elapsed = 0;
+
+        setInterval(() => {
+            elapsed++;
+
+            if (elapsed === warningTime) {
+                document.getElementById("session-warning").style.display = "block";
+            }
+
+            if (elapsed >= totalTime) {
+                window.location.href = "/login/test?expired=1";
+            }
+
+        }, 1000);
+    </script>
 
 </body>
 </html>
