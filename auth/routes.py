@@ -48,7 +48,7 @@ def request_otp():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # 1. Resolve client_id
+    # Resolve client
     cur.execute("""
         SELECT client_id
         FROM clients
@@ -62,7 +62,7 @@ def request_otp():
 
     client_id = client[0]
 
-    # 2. Check user exists
+    # Check user
     cur.execute("""
         SELECT user_id
         FROM auth_users
@@ -75,7 +75,7 @@ def request_otp():
     if not user:
         return jsonify({"message": "User not found"}), 404
 
-    # --- RATE LIMIT ---
+    # Rate limit
     cur.execute("""
         SELECT COUNT(*)
         FROM auth_otp_codes
@@ -83,33 +83,27 @@ def request_otp():
         AND created_at > NOW() - INTERVAL '5 minutes'
     """, (contact,))
 
-    otp_count = cur.fetchone()[0]
-
-    if otp_count >= 3:
+    if cur.fetchone()[0] >= 3:
         cur.close()
         conn.close()
         return jsonify({
             "message": "Too many requests. Please wait a few minutes."
         }), 429
 
-    # 3. Generate OTP
+    # Generate OTP
     code = generate_otp()
 
-    # 4. Store OTP (attempt_count starts at 0)
     cur.execute("""
         INSERT INTO auth_otp_codes (client_id, contact, code, expires_at, attempt_count)
         VALUES (%s, %s, %s, NOW() + INTERVAL '5 minutes', 0)
     """, (client_id, contact, code))
 
     conn.commit()
-
     cur.close()
     conn.close()
 
-    # 5. Send email
     send_otp_email(contact, code)
 
-    # 6. Redirect to verify page
     return redirect(url_for(
         "auth.verify_page",
         contact=contact,
@@ -127,7 +121,6 @@ def verify_otp():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # 1. Get latest OTP
     cur.execute("""
         SELECT otp_id, client_id, expires_at, used, attempt_count
         FROM auth_otp_codes
@@ -148,7 +141,7 @@ def verify_otp():
 
     otp_id, client_id, expires_at, used, attempt_count = otp
 
-    # 2. Expiry check
+    # Expired
     if expires_at < datetime.utcnow():
         return render_template(
             "verify.html",
@@ -157,7 +150,7 @@ def verify_otp():
             error="Code expired. Please request a new one."
         )
 
-    # 3. Used check
+    # Used
     if used:
         return render_template(
             "verify.html",
@@ -166,16 +159,17 @@ def verify_otp():
             error="This code has already been used."
         )
 
-    # 4. Attempt limit
+    # Locked
     if attempt_count >= 3:
         return render_template(
             "verify.html",
             contact=contact,
             client_number=client_number,
-            error="Too many incorrect attempts. Request a new code."
+            error="Too many incorrect attempts. Redirecting to login...",
+            redirect_to_login=True
         )
 
-    # 5. Validate code
+    # Validate code
     cur.execute("""
         SELECT otp_id
         FROM auth_otp_codes
@@ -185,7 +179,7 @@ def verify_otp():
     valid = cur.fetchone()
 
     if not valid:
-        # increment attempt_count
+        # increment attempts
         cur.execute("""
             UPDATE auth_otp_codes
             SET attempt_count = attempt_count + 1
@@ -194,21 +188,23 @@ def verify_otp():
 
         conn.commit()
 
+        remaining = 3 - (attempt_count + 1)
+
         return render_template(
             "verify.html",
             contact=contact,
             client_number=client_number,
-            error="Invalid code. Please try again."
+            error=f"Invalid code. {remaining} attempt(s) remaining."
         )
 
-    # 6. Mark as used
+    # Mark used
     cur.execute("""
         UPDATE auth_otp_codes
         SET used = TRUE
         WHERE otp_id = %s
     """, (otp_id,))
 
-    # 7. Get user
+    # Get user
     cur.execute("""
         SELECT user_id
         FROM auth_users
@@ -216,14 +212,8 @@ def verify_otp():
         AND client_id = %s
     """, (contact, contact, client_id))
 
-    user = cur.fetchone()
+    user_id = cur.fetchone()[0]
 
-    if not user:
-        return jsonify({"message": "User not found"}), 404
-
-    user_id = user[0]
-
-    # 8. Create session
     session_token = "sess_" + generate_otp(10)
 
     cur.execute("""
