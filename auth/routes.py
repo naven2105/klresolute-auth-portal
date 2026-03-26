@@ -48,7 +48,6 @@ def request_otp():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Resolve client
     cur.execute("""
         SELECT client_id
         FROM clients
@@ -62,7 +61,6 @@ def request_otp():
 
     client_id = client[0]
 
-    # Check user
     cur.execute("""
         SELECT user_id
         FROM auth_users
@@ -75,7 +73,6 @@ def request_otp():
     if not user:
         return jsonify({"message": "User not found"}), 404
 
-    # Rate limit
     cur.execute("""
         SELECT COUNT(*)
         FROM auth_otp_codes
@@ -90,7 +87,6 @@ def request_otp():
             "message": "Too many requests. Please wait a few minutes."
         }), 429
 
-    # Generate OTP
     code = generate_otp()
 
     cur.execute("""
@@ -141,7 +137,6 @@ def verify_otp():
 
     otp_id, client_id, expires_at, used, attempt_count = otp
 
-    # Expired
     if expires_at < datetime.utcnow():
         return render_template(
             "verify.html",
@@ -150,7 +145,6 @@ def verify_otp():
             error="Code expired. Please request a new one."
         )
 
-    # Used
     if used:
         return render_template(
             "verify.html",
@@ -159,7 +153,6 @@ def verify_otp():
             error="This code has already been used."
         )
 
-    # Locked
     if attempt_count >= 3:
         return render_template(
             "verify.html",
@@ -169,7 +162,6 @@ def verify_otp():
             redirect_to_login=True
         )
 
-    # Validate code
     cur.execute("""
         SELECT otp_id
         FROM auth_otp_codes
@@ -179,7 +171,6 @@ def verify_otp():
     valid = cur.fetchone()
 
     if not valid:
-        # increment attempts
         cur.execute("""
             UPDATE auth_otp_codes
             SET attempt_count = attempt_count + 1
@@ -197,14 +188,12 @@ def verify_otp():
             error=f"Invalid code. {remaining} attempt(s) remaining."
         )
 
-    # Mark used
     cur.execute("""
         UPDATE auth_otp_codes
         SET used = TRUE
         WHERE otp_id = %s
     """, (otp_id,))
 
-    # Get user
     cur.execute("""
         SELECT user_id
         FROM auth_users
@@ -232,10 +221,11 @@ def verify_otp():
     return response
 
 
-# --- Dashboard (PROTECTED) ---
+# --- Dashboard (DEBUG) ---
 @auth_bp.route("/dashboard", methods=["GET"])
 def dashboard():
     session_token = request.cookies.get("session_token")
+    print("SESSION TOKEN:", session_token)
 
     if not session_token:
         return redirect("/login/test")
@@ -250,6 +240,7 @@ def dashboard():
     """, (session_token,))
 
     session = cur.fetchone()
+    print("SESSION DB RESULT:", session)
 
     if not session:
         cur.close()
