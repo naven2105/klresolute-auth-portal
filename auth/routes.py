@@ -238,7 +238,7 @@ def dashboard():
     session_token = request.cookies.get("session_token")
 
     if not session_token:
-        return redirect(url_for("auth.login", client_number="unknown"))
+        return redirect("/login/test")
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -254,14 +254,14 @@ def dashboard():
     if not session:
         cur.close()
         conn.close()
-        return redirect(url_for("auth.login", client_number="unknown"))
+        return redirect("/login/test")
 
     user_id, expires_at = session
 
     if expires_at < datetime.utcnow():
         cur.close()
         conn.close()
-        return redirect(url_for("auth.login", client_number="unknown"))
+        return redirect("/login/test")
 
     cur.close()
     conn.close()
