@@ -3,7 +3,7 @@ File: utils/session.py
 
 Purpose:
 - Handle session validation
-- Enforce inactivity timeout using DB time
+- Enforce inactivity timeout using DB time (5 minutes)
 """
 
 from db import get_db_connection
@@ -16,19 +16,19 @@ def validate_session(session_token):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # ✅ Validate session AND inactivity in DB
+    # ✅ Step 1: validate FIRST (5 minutes)
     cur.execute("""
         SELECT user_id
         FROM auth_sessions
         WHERE session_token = %s
         AND expires_at > NOW()
-        AND last_activity_at > NOW() - INTERVAL '1 minute'
+        AND last_activity_at > NOW() - INTERVAL '5 minutes'
     """, (session_token,))
 
     session = cur.fetchone()
 
     if not session:
-        # Optional: cleanup expired session
+        # cleanup
         cur.execute("""
             DELETE FROM auth_sessions
             WHERE session_token = %s
@@ -41,7 +41,7 @@ def validate_session(session_token):
 
     user_id = session[0]
 
-    # ✅ Update last activity (DB time)
+    # ✅ Step 2: update activity AFTER validation
     cur.execute("""
         UPDATE auth_sessions
         SET last_activity_at = NOW()
