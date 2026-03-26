@@ -3,14 +3,10 @@ File: utils/session.py
 
 Purpose:
 - Handle session validation
-- Enforce inactivity timeout (1 minute)
+- Enforce inactivity timeout using DB time
 """
 
-from datetime import datetime, timedelta
 from db import get_db_connection
-
-
-INACTIVITY_TIMEOUT = timedelta(minutes=1)
 
 
 def validate_session(session_token):
@@ -20,31 +16,19 @@ def validate_session(session_token):
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # ✅ Validate session AND inactivity in DB
     cur.execute("""
-        SELECT user_id, expires_at, last_activity_at
+        SELECT user_id
         FROM auth_sessions
         WHERE session_token = %s
+        AND expires_at > NOW()
+        AND last_activity_at > NOW() - INTERVAL '1 minute'
     """, (session_token,))
 
     session = cur.fetchone()
 
     if not session:
-        cur.close()
-        conn.close()
-        return None
-
-    user_id, expires_at, last_activity_at = session
-
-    now = datetime.utcnow()
-
-    # --- Expiry check ---
-    if expires_at < now:
-        cur.close()
-        conn.close()
-        return None
-
-    # 🔴 FIX: Allow slight buffer (timezone / delay)
-    if last_activity_at < now - (INACTIVITY_TIMEOUT + timedelta(seconds=10)):
+        # Optional: cleanup expired session
         cur.execute("""
             DELETE FROM auth_sessions
             WHERE session_token = %s
@@ -55,7 +39,9 @@ def validate_session(session_token):
         conn.close()
         return None
 
-    # --- Update last activity ---
+    user_id = session[0]
+
+    # ✅ Update last activity (DB time)
     cur.execute("""
         UPDATE auth_sessions
         SET last_activity_at = NOW()
