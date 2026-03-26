@@ -23,17 +23,35 @@
     <br><br>
     <hr>
 
-    <!-- Subtle resend section -->
     <p>Didn’t receive it?</p>
 
     <form method="POST" action="/auth/request-otp">
         <input type="hidden" name="contact" value="{{ contact }}">
         <input type="hidden" name="client_number" value="{{ client_number }}">
 
-        <button type="submit" style="background:none;border:none;color:blue;text-decoration:underline;cursor:pointer;">
-            Resend code
+        <button id="resendBtn" type="submit" disabled
+            style="background:none;border:none;color:grey;text-decoration:underline;cursor:not-allowed;">
+            Resend code (30s)
         </button>
     </form>
+
+    <script>
+        let seconds = 30;
+        const btn = document.getElementById("resendBtn");
+
+        const timer = setInterval(() => {
+            seconds--;
+            btn.textContent = `Resend code (${seconds}s)`;
+
+            if (seconds <= 0) {
+                clearInterval(timer);
+                btn.disabled = false;
+                btn.textContent = "Resend code";
+                btn.style.color = "blue";
+                btn.style.cursor = "pointer";
+            }
+        }, 1000);
+    </script>
 
 </body>
 </html>
