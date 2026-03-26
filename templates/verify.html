@@ -11,7 +11,6 @@
 
     <form method="POST" action="/auth/verify-otp">
         
-        <!-- Hidden fields to keep context -->
         <input type="hidden" name="contact" value="{{ contact }}">
         <input type="hidden" name="client_number" value="{{ client_number }}">
 
@@ -21,12 +20,19 @@
         <button type="submit">Verify Code</button>
     </form>
 
-    <br>
+    <br><br>
+    <hr>
+
+    <!-- Subtle resend section -->
+    <p>Didn’t receive it?</p>
 
     <form method="POST" action="/auth/request-otp">
         <input type="hidden" name="contact" value="{{ contact }}">
         <input type="hidden" name="client_number" value="{{ client_number }}">
-        <button type="submit">Resend Code</button>
+
+        <button type="submit" style="background:none;border:none;color:blue;text-decoration:underline;cursor:pointer;">
+            Resend code
+        </button>
     </form>
 
 </body>
