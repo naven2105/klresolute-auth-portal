@@ -75,6 +75,24 @@ def request_otp():
     if not user:
         return jsonify({"message": "User not found"}), 404
 
+    # --- RATE LIMIT PATCH (added) ---
+    cur.execute("""
+        SELECT COUNT(*)
+        FROM auth_otp_codes
+        WHERE contact = %s
+        AND created_at > NOW() - INTERVAL '5 minutes'
+    """, (contact,))
+
+    otp_count = cur.fetchone()[0]
+
+    if otp_count >= 3:
+        cur.close()
+        conn.close()
+        return jsonify({
+            "message": "Too many requests. Please wait a few minutes."
+        }), 429
+    # --- END PATCH ---
+
     # 3. Generate OTP
     code = generate_otp()
 
