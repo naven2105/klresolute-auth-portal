@@ -75,7 +75,7 @@ def request_otp():
     if not user:
         return jsonify({"message": "User not found"}), 404
 
-    # --- RATE LIMIT PATCH (added) ---
+    # --- RATE LIMIT ---
     cur.execute("""
         SELECT COUNT(*)
         FROM auth_otp_codes
@@ -91,15 +91,14 @@ def request_otp():
         return jsonify({
             "message": "Too many requests. Please wait a few minutes."
         }), 429
-    # --- END PATCH ---
 
     # 3. Generate OTP
     code = generate_otp()
 
-    # 4. Store OTP
+    # 4. Store OTP (attempt_count starts at 0)
     cur.execute("""
-        INSERT INTO auth_otp_codes (client_id, contact, code, expires_at)
-        VALUES (%s, %s, %s, NOW() + INTERVAL '5 minutes')
+        INSERT INTO auth_otp_codes (client_id, contact, code, expires_at, attempt_count)
+        VALUES (%s, %s, %s, NOW() + INTERVAL '5 minutes', 0)
     """, (client_id, contact, code))
 
     conn.commit()
@@ -123,41 +122,93 @@ def request_otp():
 def verify_otp():
     contact = request.form.get("contact")
     code = request.form.get("code")
+    client_number = request.form.get("client_number")
 
     conn = get_db_connection()
     cur = conn.cursor()
 
     # 1. Get latest OTP
     cur.execute("""
-        SELECT otp_id, client_id, expires_at, used
+        SELECT otp_id, client_id, expires_at, used, attempt_count
         FROM auth_otp_codes
-        WHERE contact = %s AND code = %s
+        WHERE contact = %s
         ORDER BY created_at DESC
         LIMIT 1
-    """, (contact, code))
+    """, (contact,))
 
     otp = cur.fetchone()
 
     if not otp:
-        return jsonify({"message": "Invalid OTP"}), 400
+        return render_template(
+            "verify.html",
+            contact=contact,
+            client_number=client_number,
+            error="No code found. Please request a new one."
+        )
 
-    otp_id, client_id, expires_at, used = otp
+    otp_id, client_id, expires_at, used, attempt_count = otp
 
-    # 2. Check validity
-    if used:
-        return jsonify({"message": "OTP already used"}), 400
-
+    # 2. Expiry check
     if expires_at < datetime.utcnow():
-        return jsonify({"message": "OTP expired"}), 400
+        return render_template(
+            "verify.html",
+            contact=contact,
+            client_number=client_number,
+            error="Code expired. Please request a new one."
+        )
 
-    # 3. Mark as used
+    # 3. Used check
+    if used:
+        return render_template(
+            "verify.html",
+            contact=contact,
+            client_number=client_number,
+            error="This code has already been used."
+        )
+
+    # 4. Attempt limit
+    if attempt_count >= 3:
+        return render_template(
+            "verify.html",
+            contact=contact,
+            client_number=client_number,
+            error="Too many incorrect attempts. Request a new code."
+        )
+
+    # 5. Validate code
+    cur.execute("""
+        SELECT otp_id
+        FROM auth_otp_codes
+        WHERE otp_id = %s AND code = %s
+    """, (otp_id, code))
+
+    valid = cur.fetchone()
+
+    if not valid:
+        # increment attempt_count
+        cur.execute("""
+            UPDATE auth_otp_codes
+            SET attempt_count = attempt_count + 1
+            WHERE otp_id = %s
+        """, (otp_id,))
+
+        conn.commit()
+
+        return render_template(
+            "verify.html",
+            contact=contact,
+            client_number=client_number,
+            error="Invalid code. Please try again."
+        )
+
+    # 6. Mark as used
     cur.execute("""
         UPDATE auth_otp_codes
         SET used = TRUE
         WHERE otp_id = %s
     """, (otp_id,))
 
-    # 4. Get user
+    # 7. Get user
     cur.execute("""
         SELECT user_id
         FROM auth_users
@@ -172,7 +223,7 @@ def verify_otp():
 
     user_id = user[0]
 
-    # 5. Create session
+    # 8. Create session
     session_token = "sess_" + generate_otp(10)
 
     cur.execute("""
@@ -185,7 +236,6 @@ def verify_otp():
     cur.close()
     conn.close()
 
-    # Redirect to dashboard
     return redirect("/dashboard")
 
 
