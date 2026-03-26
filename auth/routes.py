@@ -258,4 +258,27 @@ def dashboard():
         "dashboard.html",
         email=email,
         client_name=client_name
-    )   
+    )
+
+# --- Logout ---
+@auth_bp.route("/logout", methods=["GET"])
+def logout():
+    session_token = request.cookies.get("session_token")
+
+    if session_token:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            DELETE FROM auth_sessions
+            WHERE session_token = %s
+        """, (session_token,))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    response = redirect("/login/test")
+    response.delete_cookie("session_token")
+
+    return response
