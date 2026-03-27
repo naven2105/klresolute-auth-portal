@@ -1,52 +1,98 @@
 """
-App Entry Point
-KLResolute Auth Portal
-file / path = app.py
+File: app.py
+Path: /app.py
 
 Purpose:
-- Start Flask app
-- Register routes
-- Provide base endpoints
-- Apply global middleware (session protection)
+- Dumela Fire Service App (Phase 1)
+- Insert + list service jobs
 """
 
-from flask import Flask, request, redirect
+from flask import Flask, render_template, request, redirect
+from db import get_db_connection
+from auth_middleware import require_auth
 
-from auth.routes import auth_bp
-from utils.session import validate_session
-
-
-def create_app():
-    app = Flask(__name__)
-
-    # Basic config (expand later)
-    app.config["SECRET_KEY"] = "dev-secret-key"
-
-    # Register blueprints
-    app.register_blueprint(auth_bp)
-
-    # --- Middleware: Protect Routes ---
-    @app.before_request
-    def protect_routes():
-        if request.path.startswith("/dashboard"):
-            session_token = request.cookies.get("session_token")
-            user_id = validate_session(session_token)
-
-            if not user_id:
-                return redirect("/login/test?expired=1")  # ✅ changed
-
-    return app
+app = Flask(__name__)
 
 
-app = create_app()
+# --- Create Job (Form) ---
+@app.route("/jobs/new", methods=["GET"])
+@require_auth("dumela_fire")
+def new_job():
+    return render_template("new_job.html")
 
 
-# --- Basic Test Route ---
-@app.route("/health", methods=["GET"])
-def health():
-    return {"status": "ok"}, 200
+# --- Insert Job ---
+@app.route("/jobs", methods=["POST"])
+@require_auth("dumela_fire")
+def create_job():
+    data = request.form
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO dumela_fire_service_jobs (
+            customer_company_name,
+            service_address,
+            contact_person_name,
+            contact_phone,
+            contact_email,
+            scheduled_service_date,
+            account_manager_name,
+            assigned_technician_name,
+            status
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        data.get("customer_company_name"),
+        data.get("service_address"),
+        data.get("contact_person_name"),
+        data.get("contact_phone"),
+        data.get("contact_email"),
+        data.get("scheduled_service_date"),
+        data.get("account_manager_name"),
+        data.get("assigned_technician_name"),
+        "scheduled"
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/jobs")
 
 
-# --- Run App ---
+# --- List Jobs ---
+@app.route("/jobs", methods=["GET"])
+@require_auth("dumela_fire")
+def list_jobs():
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            id,
+            customer_company_name,
+            service_address,
+            contact_person_name,
+            contact_phone,
+            contact_email,
+            scheduled_service_date,
+            account_manager_name,
+            assigned_technician_name,
+            status,
+            created_at
+        FROM dumela_fire_service_jobs
+        ORDER BY created_at DESC
+    """)
+
+    jobs = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("jobs.html", jobs=jobs)
+
+
 if __name__ == "__main__":
     app.run(debug=True)
