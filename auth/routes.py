@@ -1,5 +1,6 @@
 """
 File: auth/routes.py
+Path: /auth/routes.py
 
 Purpose:
 - Define authentication routes
@@ -194,6 +195,7 @@ def verify_otp():
             error=f"Invalid code. {remaining} attempt(s) remaining."
         )
 
+    # --- success ---
     cur.execute("""
         UPDATE auth_otp_codes
         SET used = TRUE
@@ -221,13 +223,16 @@ def verify_otp():
     cur.close()
     conn.close()
 
-    response = redirect("/dashboard")
+    # --- redirect to client app ---
+    client_app_url = "http://localhost:5001"
+
+    response = redirect(client_app_url)
     response.set_cookie("session_token", session_token, httponly=True)
 
     return response
 
 
-# --- Dashboard (SYNC TIMER) ---
+# --- Dashboard ---
 @auth_bp.route("/dashboard", methods=["GET"])
 def dashboard():
     session_token = request.cookies.get("session_token")
@@ -236,7 +241,6 @@ def dashboard():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Get user
     cur.execute("""
         SELECT email, client_id
         FROM auth_users
@@ -246,7 +250,6 @@ def dashboard():
 
     email, client_id = user
 
-    # Get client
     cur.execute("""
         SELECT client_name
         FROM clients
@@ -256,7 +259,6 @@ def dashboard():
 
     client_name = client[0] if client else "Unknown Client"
 
-    # ✅ NEW: get last_activity_at
     cur.execute("""
         SELECT last_activity_at
         FROM auth_sessions
