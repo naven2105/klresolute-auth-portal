@@ -7,12 +7,10 @@
 
     <h2>Enter Your Code</h2>
 
-    <!-- Error message -->
     {% if error %}
         <p style="color:red;"><strong>{{ error }}</strong></p>
     {% endif %}
 
-    <!-- Countdown redirect (only when locked) -->
     {% if redirect_to_login %}
         <p>Redirecting in <span id="countdown">5</span> seconds...</p>
 
@@ -26,7 +24,7 @@
 
                 if (seconds <= 0) {
                     clearInterval(timer);
-                    window.location.href = "/login/{{ client_number }}";
+                    window.location.href = "https://auth1.klresolute.co.za/login/{{ client_number }}";
                 }
             }, 1000);
         </script>
@@ -35,7 +33,6 @@
     <p>We sent a 6-digit code to your email and WhatsApp</p>
 
     <form method="POST" action="/auth/verify-otp">
-        
         <input type="hidden" name="contact" value="{{ contact }}">
         <input type="hidden" name="client_number" value="{{ client_number }}">
 
@@ -61,15 +58,15 @@
     </form>
 
     <script>
-        let seconds = 30;
+        let resendSeconds = 30;
         const btn = document.getElementById("resendBtn");
 
-        const timer = setInterval(() => {
-            seconds--;
-            btn.textContent = `Resend code (${seconds}s)`;
+        const resendTimer = setInterval(() => {
+            resendSeconds--;
+            btn.textContent = `Resend code (${resendSeconds}s)`;
 
-            if (seconds <= 0) {
-                clearInterval(timer);
+            if (resendSeconds <= 0) {
+                clearInterval(resendTimer);
                 btn.disabled = false;
                 btn.textContent = "Resend code";
                 btn.style.color = "blue";
