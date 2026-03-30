@@ -220,7 +220,7 @@ def verify_otp():
     conn.close()
 
     # --- redirect to client app ---
-    client_app_url = "https://klresolute-dumela-app.onrender.com"
+    client_app_url = "https://dumela.klresolute.co.za"
 
     response = redirect(client_app_url)
 
