@@ -107,12 +107,7 @@ def request_otp():
 
     send_otp_email(contact, code)
 
-    return redirect(url_for(
-        "auth.verify_page",
-        contact=contact,
-        client_number=client_number
-    ))
-
+    return redirect(f"https://auth1.klresolute.co.za/verify?contact={contact}&client_number={client_number}")
 
 # --- Verify OTP ---
 @auth_bp.route("/auth/verify-otp", methods=["POST"])
@@ -297,7 +292,7 @@ def logout():
         cur.close()
         conn.close()
 
-    response = redirect("/login/test")
+    response = redirect("https://auth1.klresolute.co.za/login/27620469153")
     response.delete_cookie("session_token")
 
     return response
