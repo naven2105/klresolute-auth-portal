@@ -19,7 +19,7 @@ def require_auth(client_name="dumela_fire"):
             session_token = request.cookies.get("session_token")
 
             if not session_token:
-                return redirect("https://your-auth-app.onrender.com/login")
+                return redirect("https://auth1.klresolute.co.za/login/27620469153")
 
             conn = get_db_connection()
             cur = conn.cursor()
@@ -36,12 +36,12 @@ def require_auth(client_name="dumela_fire"):
             conn.close()
 
             if not session:
-                return redirect("https://your-auth-app.onrender.com/login")
+                return redirect("https://auth1.klresolute.co.za/login/27620469153")
 
             user_id, client_id, expires_at = session
 
             if client_id != client_name:
-                return redirect("https://your-auth-app.onrender.com/login")
+                return redirect("https://auth1.klresolute.co.za/login/27620469153")
 
             return f(*args, **kwargs)
 
