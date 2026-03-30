@@ -109,6 +109,7 @@ def request_otp():
 
     return redirect(f"https://auth1.klresolute.co.za/verify?contact={contact}&client_number={client_number}")
 
+
 # --- Verify OTP ---
 @auth_bp.route("/auth/verify-otp", methods=["POST"])
 def verify_otp():
@@ -220,6 +221,8 @@ def verify_otp():
 
     # --- redirect to client app ---
     client_app_url = "https://klresolute-dumela-app.onrender.com"
+
+    print("✅ OTP SUCCESS - redirecting to:", client_app_url)
 
     response = redirect(client_app_url)
     response.set_cookie("session_token", session_token, httponly=True)
