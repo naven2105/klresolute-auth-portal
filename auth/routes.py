@@ -230,7 +230,8 @@ def verify_otp():
         session_token,
         httponly=True,
         secure=True,
-        samesite="None"
+        samesite="None",
+        domain=".klresolute.co.za"
     )
 
     return response
