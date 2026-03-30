@@ -224,7 +224,7 @@ def verify_otp():
     conn.close()
 
     # --- redirect to client app ---
-    client_app_url = "http://localhost:5001"
+    client_app_url = "https://klresolute-dumela-app.onrender.com"
 
     response = redirect(client_app_url)
     response.set_cookie("session_token", session_token, httponly=True)
